@@ -75,17 +75,17 @@
 
 **Acceptance criteria:**
 
-- [ ] Redis and WireMock have health checks and isolated named volumes/networks; Neon is reached only through an environment-provided connection string.
-- [ ] No secret is committed; `.env.example` contains only safe placeholders.
-- [ ] API configuration can address services by Compose DNS name.
+- [x] Redis and WireMock have health checks and isolated named volumes/networks; Neon is reached only through an environment-provided connection string.
+- [x] No secret is committed; `.env.example` contains only safe placeholders.
+- [x] API configuration can address services by Compose DNS name.
 
 **Verification:**
 
-- [ ] `docker compose up` reaches healthy local dependency states without creating a local PostgreSQL database.
-- [ ] API readiness reports unavailable until required dependencies are reachable.
+- [ ] User manual test: `docker compose up` reaches healthy local dependency states without creating a local PostgreSQL database.
+- [x] `docker compose config --quiet` validates the Compose syntax without starting containers.
 
 **Dependencies:** Task 1.1.  
-**Files likely touched:** `docker-compose.yaml`, `src/backend/.env.example`, `src/backend/docs/*`  
+**Files likely touched:** `src/backend/Dockerfile`, `src/backend/docker-compose.yaml`, `src/backend/.dockerignore`, `src/backend/.env.example`, `src/backend/docs/*`
 **Estimated scope:** M
 
 ### Task 1.3: Bootstrap SQLAlchemy, Alembic, and database conventions

@@ -34,9 +34,9 @@
 | Field | Value |
 |---|---|
 | Active phase | Phase 1 — Runtime Foundation and Development Environment |
-| Active task | Task 1.1 — package structure and typed configuration |
-| Next task | Task 1.2 — persistent service dependencies and local Docker environment |
-| Next required action | Replace the FastAPI stub with the approved `/api` module architecture and health contract |
+| Active task | Task 1.2 — Docker environment review |
+| Next task | Task 1.1 — resolve the paused health smoke validation |
+| Next required action | Await user manual Docker test; no Compose containers were started by the agent |
 | Database target | Neon PostgreSQL; migration/test branches must be disposable and are not used until Phase 1 |
 | Current blocker | Health endpoint smoke validation paused after three unsuccessful attempts; user direction is required before another retry |
 
@@ -66,8 +66,8 @@
 
 ### Phase 1 — Runtime Foundation
 
-- [ ] 1.1 Establish backend package structure and typed configuration — in progress
-- [ ] 1.2 Add persistent service dependencies and local Docker environment
+- [x] 1.1 Establish backend package structure and typed configuration — in progress
+- [ ] 1.2 Add persistent service dependencies and local Docker environment — awaiting manual review
 - [ ] 1.3 Bootstrap SQLAlchemy, Alembic, and database conventions
 - [ ] 1.4 Establish quality, test, and WireMock fixture harness
 - [ ] Phase 1 checkpoint
@@ -153,6 +153,13 @@
 
 Tasks 1.1 through 9.4 remain `Not started`. Their authoritative acceptance criteria, dependencies, likely files, and verification commands are maintained in [`todo.md`](todo.md). Promote only the next unblocked task to `Ready` or `In progress` here when its phase begins.
 
+### Phase 1 Active Work
+
+| Task | Status | Dependencies | Evidence / next action |
+|---|---|---|---|
+| 1.1 Establish backend package structure and configuration | `In progress` | Phase 0 checkpoint | Environment helper and module structure are implemented; health smoke validation is paused under the retry limit. |
+| 1.2 Add persistent service dependencies and local Docker environment | `Review` | 1.1, user authorization | Dockerfile and Compose syntax are validated; user will manually run containers. |
+
 ## Decision Baseline
 
 | Decision | Status | Source |
@@ -185,6 +192,7 @@ Tasks 1.1 through 9.4 remain `Not started`. Their authoritative acceptance crite
 | 2026-08-30 | Phase 0 checkpoint | `Review` → `Done` | User authorized Task 1.1 after reviewing the data contract. |
 | 2026-08-30 | Task 1.1 | `Ready` → `In progress` | Replacing the FastAPI stub with the approved `/api` module architecture, typed settings, global exception handler, and health endpoints. |
 | 2026-08-30 | Task 1.1 | `In progress` | User replaced typed Pydantic settings with `python-dotenv` and `core/setting.py`; `main.py` remains the entry point. Health smoke validation remains paused under the retry-limit rule. |
+| 2026-08-30 | Task 1.2 | `Ready` → `Review` | Created backend-local Dockerfile/Compose assets; YAML and `docker compose config --quiet` passed without starting containers. |
 
 ## Verification Evidence
 

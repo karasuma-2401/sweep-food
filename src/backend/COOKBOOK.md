@@ -116,7 +116,12 @@ The application listens on port `4000`. Inspect `/docs` for the generated OpenAP
 
 ### Start local supporting services
 
-The planned Docker Compose stack runs Redis and WireMock locally. Neon remains managed remotely and is not recreated in Docker.
+`Dockerfile` and `docker-compose.yaml` belong in `src/backend`. The Compose stack runs the API, Redis, and WireMock locally. Neon remains managed remotely and is not recreated in Docker.
+
+- `api` is built from this backend directory and receives `REDIS_URL` and `WIREMOCK_URL` through Compose.
+- `redis` persists only local development data in the named `sweep_food_backend_redis_data` volume.
+- `wiremock` loads local mappings and files from `wiremock/`; no provider credentials are needed.
+- All services use the isolated `sweep_food_backend_network` bridge network.
 
 ```bash
 docker compose up -d
