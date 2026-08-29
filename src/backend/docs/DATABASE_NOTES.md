@@ -58,6 +58,66 @@
 - Meal-plan/user/date, cooking-session/user/status/time, consumption/session/batch, shopping-list/user/status, and shopping-item/list indexes.
 - Unique favorite recipe pair, favorite-menu item pair, device token hash, notification preference user, notification deduplication key, and notification user/status/created-time indexes.
 
+## Migration Mapping and Order
+
+The legacy conceptual names below are mapping aids only. `DATABASE.txt` remains the source of truth for the migration and model names.
+
+| Original conceptual item | Approved destination | Migration decision |
+|---|---|---|
+| `user` | `users` | Renamed and expanded for phone/email verification, role, status, preferences, and timestamps. |
+| `master_ingredient` | `ingredient_categories` + `master_ingredients` | Category is normalized into its own table; nutrition and default storage remain on the ingredient. |
+| `user_ingredient` | `inventory_batches` + `inventory_ledger_entries` | Split into operational batch balance and immutable quantity history to support FEFO. |
+| `media` | Direct `media_url` fields | Removed; the MVP does not need a shared media entity. |
+| `recipe` | `recipes` | Renamed; recipe instructions, nutrition, tags, and servings are retained. |
+| `recipe_ingredient` | `recipe_ingredients` | Renamed and extended with optional/preparation information. |
+| `ai_meal_plan` | `recommendation_runs`, `recommendation_items`, `meal_plans`, `meal_plan_items` | Split between ranked recommendations and explicit user meal selections. |
+| `shoopping_plan` | `shopping_lists`, `shopping_list_items` | Split into list header and editable line items. |
+| `cooking_history` | `cooking_sessions`, `cooking_consumptions` | Split into cooking header and exact batch consumption records. |
+| `user_favorite_recipe` | `favorite_recipes` | Renamed. |
+| `user_favorite_menu`, `user_favorite_menu_item` | `favorite_menus`, `favorite_menu_items` | Renamed; MVP uses creation order rather than a stored position. |
+| No original equivalent | `auth_sessions`, `ingredient_aliases`, `shelf_life_rules`, `device_registrations`, `user_notification_preferences`, `notifications` | Added because they are required by the approved PRD flows. |
+
+Create migrations in this dependency order:
+
+1. Create the 20 PostgreSQL enums, then `users` and `auth_sessions`.
+2. Create `ingredient_categories`, `master_ingredients`, `ingredient_aliases`, and `shelf_life_rules`.
+3. Create `recipes` and `recipe_ingredients`.
+4. Create `recommendation_runs`, `recommendation_items`, `meal_plans`, and `meal_plan_items`.
+5. Create `cooking_sessions`, then `inventory_batches`, `cooking_consumptions`, and `inventory_ledger_entries`. Add the nullable `inventory_batches.source_cooking_session_id` constraint after `cooking_sessions` exists to resolve the circular leftover relationship.
+6. Create `shopping_lists`, `shopping_list_items`, favorites, devices, notification preferences, and notifications.
+7. Add indexes, unique/check constraints, immutable-ledger protection, and seed the admin/catalog data only after the tables exist.
+
+Fields documented as `// table.id` in `DATABASE.txt` are relationship constraints in the implementation migration. Nullable references use `SET NULL` only where preserving historical data is required; user-owned data is not cascade-deleted in MVP.
+
+## Required Invariants and Constraints
+
+- Use database foreign keys for every documented relationship, except the explicitly deferred self/circular relationship while its target table is being created; add it before the migration is complete.
+- `users.phone_e164` is unique; `users.email` is unique when non-null; one `user_notification_preferences` row exists per user.
+- Category names, master ingredient names within a category, and recipe names are unique case-insensitively. `ingredient_aliases.normalized_alias` is unique.
+- A `shelf_life_rules` row has exactly one non-null target (`master_ingredient_id` or `category_id`), and that target/storage-mode pair is unique.
+- A recipe ingredient, meal-plan item serving, cooking session serving, cooking consumption, and shopping quantities must be positive. `meal_plans.starts_on <= ends_on`; a planned item date lies in that inclusive range.
+- An inventory batch has exactly one non-null identity (`master_ingredient_id` or `custom_name`), `initial_quantity > 0`, `current_quantity >= 0`, and a valid batch/status/source combination. A leftover references its completed source cooking session.
+- Ledger rows are append-only. Enforce this with database permissions or a trigger that rejects `UPDATE` and `DELETE`; no application endpoint may bypass the inventory service. Ensure the before/delta/after arithmetic agrees with the batch mutation in the same transaction.
+- `cooking_sessions(user_id, idempotency_key)` is unique when the key is supplied. Ledger idempotency must be unique per user, key, batch, and event type so one cooking request may safely deduct multiple batches.
+- Recommendation rank is unique within its run. Favorite recipe pairs and favorite-menu recipe pairs are unique. One meal slot per plan/date is allowed.
+- A device token hash and notification deduplication key are unique. Notification delivery failures cannot alter inventory, cooking, or ledger data.
+
+## MVP Flow Review
+
+| PRD flow | Approved storage | Review result |
+|---|---|---|
+| Phone OTP, optional verified-email OTP, refresh sessions | `users`, `auth_sessions`; OTP and rate limits in Redis | Covered; no plaintext OTP persists. |
+| Seeded catalog search and aliases | `ingredient_categories`, `master_ingredients`, `ingredient_aliases` | Covered. |
+| Estimated expiration | `shelf_life_rules`, `inventory_batches` | Covered; manufacturer date has precedence. |
+| Manual batch entry, separate expiry batches, FEFO, and audit | `inventory_batches`, `inventory_ledger_entries` | Covered; batch rows remain separate and ledger is immutable. |
+| Seeded recipes and nutrition | `recipes`, `recipe_ingredients` | Covered. |
+| Rule-based recommendation and future model adapter | `recommendation_runs`, `recommendation_items` | Covered; recommendation interaction events are intentionally deferred. |
+| Explicit meal selection and shopping list | `meal_plans`, `meal_plan_items`, `shopping_lists`, `shopping_list_items` | Covered. |
+| Cooking preview/completion and leftovers | `cooking_sessions`, `cooking_consumptions`, `inventory_batches`, ledger | Covered; exact batch deductions and leftover source are traceable. |
+| Favorites and cooking history | Favorite tables plus cooking sessions/consumptions | Covered. |
+| Expiry preferences and FCM delivery | `user_notification_preferences`, `device_registrations`, `notifications` | Covered; daily windows use `Asia/Ho_Chi_Minh`. |
+| OCR, ASR, invoice, and barcode extraction | Redis/transient provider processing only | Covered; no database write is allowed. |
+
 ## Non-persisting MVP Extraction
 
 ASR (LiveKit plus an external AI provider), OCR, invoice extraction, and barcode lookup return their normalized result only. They do not create inventory, catalog, ledger, recommendation-interaction, or raw-media records in this MVP.

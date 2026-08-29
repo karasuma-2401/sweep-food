@@ -15,6 +15,7 @@
 - Record a blocker immediately; do not work around a missing decision, failed verification, or unsafe database target.
 - Keep secrets, Neon connection strings, OTPs, tokens, user identifiers, and raw provider payloads out of this file.
 - Update both the task checkbox below and its status/evidence whenever a task changes state.
+- Retry one failed command or task at most three times. After the third failed retry, stop that work, record concise error evidence, and ask the user for help; do not make a fourth retry without direction.
 
 ### Status Legend
 
@@ -32,19 +33,19 @@
 
 | Field | Value |
 |---|---|
-| Active phase | Phase 0 — Data Contract and Database Redesign |
-| Active task | None — Task 0.2 is ready to begin |
-| Next task | Task 0.2 — Add schema migration mapping and invariants |
-| Next required action | Start Task 0.2: document migration mapping and validate the consolidated invariants/index reference |
+| Active phase | Phase 1 — Runtime Foundation and Development Environment |
+| Active task | Task 1.1 — package structure and typed configuration |
+| Next task | Task 1.2 — persistent service dependencies and local Docker environment |
+| Next required action | Replace the FastAPI stub with the approved `/api` module architecture and health contract |
 | Database target | Neon PostgreSQL; migration/test branches must be disposable and are not used until Phase 1 |
-| Current blocker | None |
+| Current blocker | Health endpoint smoke validation paused after three unsuccessful attempts; user direction is required before another retry |
 
 ## Phase Dashboard
 
 | Phase | Objective | Status | Entry condition | Exit evidence |
 |---|---|---|---|---|
-| 0 | Data Contract and Database Redesign | `In progress` | PRD approved | Human-approved `DATABASE.txt` maps all MVP data/invariants |
-| 1 | Runtime Foundation and Development Environment | `Not started` | Phase 0 checkpoint complete | API, Neon migration path, Redis/WireMock, tests, quality gate work from clean setup |
+| 0 | Data Contract and Database Redesign | `Done` | PRD approved | User approved `DATABASE.txt`; data model maps all MVP data/invariants |
+| 1 | Runtime Foundation and Development Environment | `In progress` | Phase 0 checkpoint complete | API, Neon migration path, Redis/WireMock, tests, quality gate work from clean setup |
 | 2 | Identity, Authentication, and User Preferences | `Not started` | Phase 1 checkpoint complete | Phone/email OTP, sessions, roles, ownership checks pass |
 | 3 | Catalog, Seed Pipeline, and Recipe Read APIs | `Not started` | Phase 0 and 1 checkpoints complete | Disposable Neon branch migrates/seeds repeatedly; read APIs work |
 | 4 | Inventory, Shelf Life, and FEFO | `Not started` | Phase 3 checkpoint complete | Manual batches, ledger, expiry logic, and concurrency-safe FEFO work |
@@ -59,13 +60,13 @@
 ### Phase 0 — Data Contract and Database Redesign
 
 - [x] 0.1 Replace the conceptual database schema
-- [ ] 0.2 Add schema migration mapping and invariants
-- [ ] 0.3 Review data model against MVP flows
-- [ ] Phase 0 checkpoint
+- [x] 0.2 Add schema migration mapping and invariants
+- [x] 0.3 Review data model against MVP flows
+- [x] Phase 0 checkpoint
 
 ### Phase 1 — Runtime Foundation
 
-- [ ] 1.1 Establish backend package structure and typed configuration
+- [ ] 1.1 Establish backend package structure and typed configuration — in progress
 - [ ] 1.2 Add persistent service dependencies and local Docker environment
 - [ ] 1.3 Bootstrap SQLAlchemy, Alembic, and database conventions
 - [ ] 1.4 Establish quality, test, and WireMock fixture harness
@@ -144,9 +145,9 @@
 | Task | Status | Dependencies | Evidence / next action |
 |---|---|---|---|
 | 0.1 Replace conceptual database schema | `Done` | None | User-approved schema has 20 enums and 24 tables; notes and all delivery documents are synchronized |
-| 0.2 Add schema migration mapping and invariants | `Ready` | 0.1 | Add old-to-new mapping and consolidated invariants/index reference |
-| 0.3 Review data model against MVP flows | `Not started` | 0.1, 0.2 | Await mapping/invariants |
-| Phase 0 checkpoint | `Not started` | 0.1–0.3 | Requires human approval before migrations |
+| 0.2 Add schema migration mapping and invariants | `Done` | 0.1 | Mapping, migration order, invariants, and indexes are documented in `DATABASE_NOTES.md` |
+| 0.3 Review data model against MVP flows | `Done` | 0.1, 0.2 | Every persisted and non-persisting PRD flow maps to the user-approved schema or Redis/transient processing |
+| Phase 0 checkpoint | `Done` | 0.1–0.3 | User approved the database contract by authorizing Task 1.1 |
 
 ### Future Phases
 
@@ -180,6 +181,10 @@ Tasks 1.1 through 9.4 remain `Not started`. Their authoritative acceptance crite
 | 2026-08-30 | Task 0.1 revision | `In progress` → `Done` | Restored 22 enums and 25 tables for all persistent PRD flows; confirmed table-only syntax, notes coverage, and clean whitespace validation. |
 | 2026-08-30 | Task 0.1 revision | `Done` → `In progress` | User edited `DATABASE.txt` directly and designated it as the source of truth. Documentation and dangling definitions are being reconciled. |
 | 2026-08-30 | Task 0.1 revision | `In progress` → `Done` | Removed the orphaned recommendation-event enum, synchronized documentation, and confirmed all documented table references resolve. |
+| 2026-08-30 | Tasks 0.2–0.3 | `In progress` → `Done` | Completed migration mapping/invariant review and verified every PRD flow against the 20-enum, 24-table user-approved schema. |
+| 2026-08-30 | Phase 0 checkpoint | `Review` → `Done` | User authorized Task 1.1 after reviewing the data contract. |
+| 2026-08-30 | Task 1.1 | `Ready` → `In progress` | Replacing the FastAPI stub with the approved `/api` module architecture, typed settings, global exception handler, and health endpoints. |
+| 2026-08-30 | Task 1.1 | `In progress` | User replaced typed Pydantic settings with `python-dotenv` and `core/setting.py`; `main.py` remains the entry point. Health smoke validation remains paused under the retry-limit rule. |
 
 ## Verification Evidence
 
@@ -197,6 +202,22 @@ Tasks 1.1 through 9.4 remain `Not started`. Their authoritative acceptance crite
 - Revision note: The user clarified that their smaller schema was illustrative only. The final contract retains auth sessions, catalog categories/aliases/shelf-life rules, batch ledger, recommendation history, normalized plan/cooking/shopping data, devices, and notifications.
 - Final verification: `rg -c '^enum ' src/backend/docs/DATABASE.txt` — 20; `rg -c '^table ' src/backend/docs/DATABASE.txt` — 24; documented-reference scan — every referenced table exists; `git diff --check` — passed.
 - Latest revision: `DATABASE.txt` was accepted as the source of truth. Per-user timezone, redundant dimension/seed/version metadata, and recommendation-event persistence are intentionally absent; PRD, plan, checklist, cookbook, and database notes match this contract.
+
+### Task 0.2 — Add schema migration mapping and invariants
+
+- Completed: 2026-08-30
+- Changed files: `src/backend/docs/DATABASE_NOTES.md`, `tasks/todo.md`, `tasks/tracking.md`
+- Acceptance evidence: the mapping names every original conceptual table and its approved destination; migration order resolves the nullable cooking-leftover circular reference; ownership, quantity, expiry, FEFO, ledger, idempotency, uniqueness, and index requirements are explicit.
+- Verification commands: documented-reference scan — every `// table.id` reference resolves; `git diff --check` — passed.
+- Manual verification: reviewed all 20 enums and 24 tables in `DATABASE.txt` as the source of truth.
+
+### Task 0.3 — Review data model against MVP flows
+
+- Completed: 2026-08-30
+- Changed files: `src/backend/docs/DATABASE_NOTES.md`, `tasks/tracking.md`
+- Acceptance evidence: the MVP flow review maps authentication, catalog, expiration, inventory/FEFO, recipes, recommendation, planning, shopping, cooking/leftovers, favorites, notifications, and non-persisting extraction to approved storage.
+- Verification commands: obsolete-schema scan — no references to removed timezone, dimension, seed/version, or recommendation-event persistence; `git diff --check` — passed.
+- Manual verification: verified that OCR/ASR/invoice/barcode have no persistence path and that all retained relationship comments reference existing tables.
 
 ## Verification Evidence Template
 

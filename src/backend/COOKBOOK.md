@@ -6,7 +6,7 @@ This is the practical operating guide for engineers and agents working on the Sw
 
 | Concern | Decision |
 |---|---|
-| API | FastAPI, versioned under `/api/v1` |
+| API | FastAPI under `/api` |
 | Primary database | Neon PostgreSQL, configured through `DATABASE_URL` |
 | Ephemeral state | Redis for OTP TTL, rate limits, locks, cache, and worker coordination |
 | Local/CI provider simulation | WireMock in Docker |
@@ -32,6 +32,12 @@ Use these files as the project context, in this order:
 
 Do not implement a task simply because a stub folder exists. Confirm that its task dependencies and phase checkpoint are complete first.
 
+### Retry limit and escalation
+
+- Retry one failed command or task at most three times.
+- After the third failed retry, stop work on that command or task. Report the failed command, concise error evidence, and the help needed from the user.
+- Do not attempt a fourth retry or substitute a materially different implementation without the user's direction.
+
 ## 3. Environment and Secrets
 
 ### Required local configuration
@@ -49,7 +55,7 @@ Expected configuration after the relevant phases are implemented:
 | `DATABASE_URL` | All database-enabled environments | Neon PostgreSQL application connection |
 | `DATABASE_URL_DIRECT` | Migration environments when required | Direct Neon connection for Alembic migration operations |
 | `REDIS_URL` | Local/CI/staging/production | OTP, rate-limit, lock, cache, and worker state |
-| `APP_ENV` | All | `local`, `test`, `staging`, or `production` behavior switch |
+| `ENV` | All | `dev`, `test`, `staging`, or `production` behavior switch |
 | `JWT_SECRET` | Non-local environments | Access/refresh token signing secret |
 | `SMS_PROVIDER` | Staging/production | Selects eSMS adapter; local/CI uses mock adapter |
 | `ESMS_*` | Staging/production | eSMS credentials, Brandname, and template configuration |
@@ -106,7 +112,7 @@ uv sync
 uv run python main.py
 ```
 
-The initial application listens on port `4000`. After API versioning is implemented, inspect `/docs` for the generated OpenAPI contract and use `/api/v1/health/live` and `/api/v1/health/ready` for health checks.
+The application listens on port `4000`. Inspect `/docs` for the generated OpenAPI contract. The initial health module exposes `/api/health/liveness`, `/api/health/error`, and `/api/health/text`.
 
 ### Start local supporting services
 

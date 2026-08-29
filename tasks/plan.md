@@ -33,7 +33,7 @@ Implementation constraints:
 |---|---|---|
 | Database | Neon PostgreSQL + versioned migrations | Managed PostgreSQL supports relational integrity, transactions, indexes, and `jsonb` metadata without operating a database container |
 | Ephemeral state | Redis | TTL-backed OTP challenges, rate limits, locks, and background-job coordination |
-| API | FastAPI under `/api/v1` | Matches the existing server and produces OpenAPI contracts |
+| API | FastAPI under `/api` | Matches the approved API prefix and produces OpenAPI contracts |
 | Persistence | SQLAlchemy 2.x + Alembic | Typed models and repeatable database migrations |
 | Auth | JWT access/rotating refresh sessions; backend-owned OTP | Provider-independent security and auditability |
 | Provider abstraction | Protocol/interface plus environment-selected adapter | Keeps eSMS, FCM, OCR, ASR, barcode, and ML dependencies replaceable |

@@ -1,13 +1,25 @@
-from fastapi import APIRouter, FastAPI 
+from dotenv import load_dotenv
+from fastapi import FastAPI
 
-app = FastAPI() 
+from src.core.exceptions import register_exception_handlers
+from src.core.setting import get_env_var
+from src.module.health.health_router import health_router
 
-v1_router = APIRouter(
-    prefix = '/api'
-) 
+APP_NAME = "Sweep Food API"
+APP_VERSION = "0.1.0"
+API_PREFIX = "/api"
 
-@v1_router.get('/health') 
-async def health_liveness(): 
-    return "Hello. Build with Cloudian 💙 Cloud"
+def create_app() -> FastAPI:
+    load_dotenv()
+    application = FastAPI(
+        title=APP_NAME,
+        version=APP_VERSION,
+        description="Sweep Food backend API.",
+    )
+    application.state.environment = get_env_var("ENV", "dev")
+    register_exception_handlers(application)
+    application.include_router(health_router, prefix=API_PREFIX)
+    return application
 
-app.include_router(v1_router)
+
+app = create_app()

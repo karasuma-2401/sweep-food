@@ -29,14 +29,14 @@
 
 **Acceptance criteria:**
 
-- [ ] Old tables are marked retained, renamed, split, or removed with reason.
-- [ ] Invariants include ownership, non-negative batch quantity, manufacturer-expiry precedence, and ledger immutability.
-- [ ] Indexes required by user/batch/expiry and FEFO queries are listed.
+- [x] Old tables are marked retained, renamed, split, or removed with reason.
+- [x] Invariants include ownership, non-negative batch quantity, manufacturer-expiry precedence, and ledger immutability.
+- [x] Indexes required by user/batch/expiry and FEFO queries are listed.
 
 **Verification:**
 
-- [ ] Reviewer can determine a migration order without guessing.
-- [ ] No existing ambiguous field name remains in the canonical schema.
+- [x] Reviewer can determine a migration order without guessing.
+- [x] No existing ambiguous field name remains in the canonical schema.
 
 **Dependencies:** Task 0.1.  
 **Files likely touched:** `src/backend/docs/DATABASE_NOTES.md`
@@ -44,9 +44,9 @@
 
 ### Checkpoint: Phase 0
 
-- [ ] `DATABASE.txt` has human approval.
-- [ ] All PRD data needs map to documented storage.
-- [ ] No application code or Alembic migration has been started against an unapproved schema.
+- [x] `DATABASE.txt` has human approval.
+- [x] All PRD data needs map to documented storage.
+- [x] No application code or Alembic migration has been started against an unapproved schema.
 
 ## Phase 1 — Runtime Foundation
 
@@ -56,9 +56,9 @@
 
 **Acceptance criteria:**
 
-- [ ] API base path is `/api/v1`; live and ready health endpoints are distinct.
-- [ ] Settings load environment variables through a typed configuration object.
-- [ ] Error responses follow the PRD `error.code/message/details/request_id` contract.
+- [ ] API base path is `/api`; health endpoints follow the approved `/health` module contract.
+- [ ] Environment variables load through the shared `core/setting.py` helper.
+- [ ] Error responses contain `status_code`, `detail`, and `path`.
 
 **Verification:**
 
@@ -119,7 +119,7 @@
 
 **Verification:**
 
-- [ ] A smoke test calls `/health/live` and `/health/ready`.
+- [ ] Smoke tests cover `/api/health/liveness`, `/api/health/error`, and `/api/health/text`.
 - [ ] A fixture produces a deterministic provider response through WireMock.
 
 **Dependencies:** Tasks 1.2–1.3.  

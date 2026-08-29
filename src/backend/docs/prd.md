@@ -562,7 +562,7 @@ Fields may be null. The output must explicitly state `persisted: false`.
 
 ### 8.1 Conventions
 
-- Base path: `/api/v1`.
+- Base path: `/api`.
 - JSON uses `snake_case`.
 - Dates use ISO 8601; timestamps include timezone and are returned in UTC.
 - Phone numbers use E.164.
@@ -575,16 +575,13 @@ Fields may be null. The output must explicitly state `persisted: false`.
 
 ```json
 {
-  "error": {
-    "code": "INSUFFICIENT_INVENTORY",
-    "message": "The requested cooking quantities are no longer available.",
-    "details": [],
-    "request_id": "uuid"
-  }
+  "status_code": 409,
+  "detail": "The requested cooking quantities are no longer available.",
+  "path": "/api/cooking/sessions/example/complete"
 }
 ```
 
-Domain error codes are stable and are not Python exception names. Validation errors use field-level details. Internal stack traces are never returned.
+Validation errors use the same envelope. Internal stack traces are never returned.
 
 ### 8.3 Endpoint inventory
 
@@ -592,8 +589,9 @@ Domain error codes are stable and are not Python exception names. Validation err
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET` | `/health/live` | Process liveness |
-| `GET` | `/health/ready` | Database/Redis readiness |
+| `GET` | `/health/liveness` | Process liveness; returns JSON |
+| `GET` | `/health/error` | Raises a deterministic HTTP exception for error-envelope verification |
+| `GET` | `/health/text` | Returns the approved plain-text message |
 
 #### Authentication
 
