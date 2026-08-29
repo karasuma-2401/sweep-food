@@ -145,7 +145,7 @@ An estimated expiration must be marked with `expiration_source = ESTIMATED`; man
 
 | Mode | Code | Intent |
 |---|---|---|
-| Immediate use / cook today | `IMMEDIATE` | High-priority ingredients that should be used as soon as possible |
+| Room temperature | `ROOM_TEMPERATURE` | Shelf-stable ingredients kept outside refrigerator/freezer |
 | Refrigerator | `REFRIGERATED` | Chilled ingredients with category-based short shelf life |
 | Freezer | `FROZEN` | Frozen meat, fish, seafood, and other eligible foods |
 | Dry-goods shelf | `DRY_SHELF` | Spices, canned food, instant noodles, grains, and shelf-stable food |
@@ -154,12 +154,12 @@ Reference shelf-life values are configuration/seed data, not hard-coded domain c
 
 ### 4.6 Units and conversions
 
-Canonical units are `GRAM`, `KILOGRAM`, `MILLILITER`, `LITER`, `PIECE`, `PACK`, and `OTHER`.
+Canonical units are `GRAM`, `KG`, `ML`, `LITER`, `PIECE`, `PACK`, and `OTHER`.
 
 - Mass conversion is supported between gram and kilogram.
 - Volume conversion is supported between milliliter and liter.
 - `PIECE`, `PACK`, and `OTHER` are not converted unless the master ingredient defines an explicit conversion factor.
-- A recipe and inventory batch must have compatible dimensions before automatic deduction.
+- A recipe and inventory batch must use compatible units before automatic deduction.
 - Quantities must be positive decimal values on creation and must never become negative.
 
 ### 4.7 Nutrition calculation
@@ -265,11 +265,11 @@ The user can:
 - Retrieve their profile.
 - Update their display name and preferences.
 - Add or replace an email address through verification.
-- Select timezone, locale, dietary preferences, disliked ingredients, maximum cooking time, and optional nutrition preferences.
+- Select locale, dietary preferences, disliked ingredients, maximum cooking time, and optional nutrition preferences.
 - Manage notification preferences.
 - List and revoke sessions.
 
-All persisted timestamps use UTC. User-local dates and notification windows are calculated with the user's IANA timezone; the initial default is `Asia/Ho_Chi_Minh`.
+All persisted timestamps use UTC. MVP notification dates and warning windows use the fixed product timezone `Asia/Ho_Chi_Minh`; no timezone is stored per user.
 
 ### 7.2 Master ingredient catalog
 
@@ -281,12 +281,11 @@ Each master ingredient includes:
 - Category.
 - Description.
 - Default image URL.
-- Canonical unit/dimension.
+- Canonical unit.
 - Nutrition per 100 grams when applicable.
 - Additional nutrition JSON for non-core nutrients.
 - Eligible/default storage modes.
 - Shelf-life rule references.
-- Active flag and seed source/version.
 
 Users may search the catalog by name or alias. Manual inventory entry may also use a custom ingredient with no master match, but custom ingredients have limited nutrition, recommendation, and automatic conversion behavior.
 
@@ -318,7 +317,7 @@ The API must support:
 - Aggregated inventory grouped by master ingredient/custom name and compatible unit.
 - Batch detail.
 - Batch update with audit history.
-- Quantity adjustment with a reason.
+- Quantity adjustment with an event type.
 - Move to another storage mode and recalculate estimated expiration when appropriate.
 - Archive an empty, discarded, or removed batch.
 
@@ -342,7 +341,7 @@ Every quantity change creates an immutable ledger entry:
 - `LEFTOVER_CREATED`
 - `CORRECTION`
 
-The ledger records quantity before/after, delta, unit, actor, reason, related cooking session when applicable, idempotency key, and timestamp. The current batch quantity is the operational value; the ledger provides traceability.
+The ledger records quantity before/after, delta, unit, related cooking session when applicable, idempotency key, and timestamp. The current batch quantity is the operational value; the ledger provides traceability.
 
 ### 7.6 Recipe catalog
 
@@ -350,10 +349,9 @@ Recipes are seeded and read-only through public MVP APIs. A recipe contains:
 
 - Name, description, instructions, image URL, category/tags.
 - Default servings and estimated cooking time.
-- Estimated cost and currency.
+- Estimated cost in VND.
 - Denormalized nutrition totals.
 - Required ingredients, quantity, unit, and whether each item is optional.
-- Active flag and seed version.
 
 Recipe responses must scale required quantities and nutrition when requested servings differ from default servings.
 
@@ -378,7 +376,7 @@ The response includes total score and component scores so users and developers c
 
 Until the ML model is available, the backend uses a database-backed deterministic provider:
 
-- Candidate recipes come from active seeded recipes.
+- Candidate recipes come from seeded recipes.
 - Hard exclusions remove incompatible dietary/disliked ingredients when configured.
 - The provider computes available and missing quantities using unit conversion.
 - It applies the score above where data exists.
@@ -401,7 +399,7 @@ The future feature vector may include:
 - Dietary/nutrition preference matches.
 - Prior impressions, selections, completions, and dismissals.
 
-The backend must record recommendation events needed for later model evaluation, while avoiding storage of raw sensitive extraction inputs.
+Recommendation interaction events are deferred until the future ML training phase. The MVP avoids storing raw sensitive extraction inputs.
 
 ### 7.8 Meal selection and planning
 
@@ -740,8 +738,6 @@ Neon PostgreSQL is the system of record. Redis stores ephemeral OTP challenges, 
 - `email_verified_at timestamptz nullable`
 - `role enum(user, admin) not null`
 - `status enum(unverified, active, banned) not null`
-- `timezone varchar not null default 'Asia/Ho_Chi_Minh'`
-- `locale varchar not null default 'vi-VN'`
 - `preferences jsonb not null default '{}'`
 - `created_at`, `updated_at timestamptz`
 
@@ -761,16 +757,13 @@ OTP challenges are preferably stored in Redis due to TTL. If persistence/audit r
 #### `master_ingredients`
 
 - `id uuid PK`
-- `name`, `normalized_name`, `description`
+- `name`, `description`
 - `category_id uuid FK`
 - `default_media_url nullable`
-- `canonical_unit`, `dimension`
+- `canonical_unit`
 - `calories`, `protein_g`, `fat_g`, `carbs_g`, `sugar_g`, `sodium_mg nullable`
 - `other_nutrients jsonb`
 - `default_storage_mode nullable`
-- `source_key varchar unique`
-- `seed_version varchar`
-- `is_active boolean`
 - timestamps
 
 #### `ingredient_aliases`
@@ -787,9 +780,6 @@ OTP challenges are preferably stored in Redis due to TTL. If persistence/audit r
 - `category_id nullable FK`
 - `storage_mode`
 - `min_days`, `max_days`, `default_days`
-- `priority`
-- `source_note nullable`
-- `is_active`
 
 Ingredient-specific rules take precedence over category rules.
 
@@ -800,12 +790,9 @@ Ingredient-specific rules take precedence over category rules.
 - `media_url nullable`
 - `default_servings decimal`
 - `estimated_cooking_minutes integer`
-- `estimated_cost decimal nullable`, `currency char(3)`
+- `estimated_cost decimal nullable`
 - denormalized nutrition columns and `other_nutrients jsonb`
 - `tags jsonb`
-- `created_by uuid nullable FK`
-- `source_key varchar unique`, `seed_version varchar`
-- `is_active boolean`
 - timestamps
 
 #### `recipe_ingredients`
@@ -836,11 +823,10 @@ Ingredient-specific rules take precedence over category rules.
 - `purchased_at`, `packaged_at`, `stored_at nullable`
 - `expires_at timestamptz nullable`
 - `expiration_source enum(manufacturer, estimated, user_override, unknown)`
-- `unit_cost decimal nullable`, `currency char(3) nullable`
+- `unit_cost decimal nullable`
 - `note nullable`, `media_url nullable`
 - `source enum(manual, leftover)` for persisted MVP batches
 - `source_cooking_session_id uuid nullable FK`
-- `version integer` for optimistic concurrency
 - timestamps and optional `archived_at`
 
 Constraints:
@@ -857,7 +843,6 @@ Constraints:
 - `user_id`, `batch_id`
 - `event_type`
 - `quantity_before`, `quantity_delta`, `quantity_after`, `unit`
-- `reason nullable`
 - `cooking_session_id nullable`
 - `idempotency_key nullable`
 - `created_at`
@@ -883,13 +868,6 @@ Constraints:
 - score components
 - `explanation jsonb`
 - unique `(recommendation_run_id, rank)`
-
-#### `recommendation_events`
-
-- `id uuid PK`
-- `user_id`, `recommendation_run_id`, `recipe_id`
-- `event_type enum(impression, selected, dismissed, cooked)`
-- `created_at`
 
 #### `meal_plans` and `meal_plan_items`
 
@@ -921,8 +899,9 @@ Meal plans belong to one user and cover a start/end date. Items connect a date/m
 - `shopping_list_items`: master/custom ingredient, required/available/missing quantities, unit, estimated cost, checked flag, source metadata.
 - `favorite_recipes`: unique user/recipe pair.
 - `favorite_menus`: user-owned name and description.
-- `favorite_menu_items`: menu/recipe with ordering.
+- `favorite_menu_items`: menu/recipe relation; creation order is used in MVP.
 - `device_registrations`: user, FCM token hash/encrypted token, platform, enabled status, last seen.
+- `user_notification_preferences`: one row per user with warning-window and notification-type settings.
 - `notifications`: user, type, title/body, payload, deduplication key, read/delivery status, scheduled/sent timestamps, retry count.
 
 ## 10. Seed Data Requirements
@@ -933,12 +912,11 @@ The seed process must:
 
 - Create the admin account from environment-provided identity data; secrets are never committed.
 - Seed ingredient categories, master ingredients, aliases, shelf-life rules, recipes, and recipe ingredients.
-- Use stable `source_key` values and upserts so it is safe to rerun.
+- Use deterministic natural keys and upserts so it is safe to rerun.
 - Run inside a transaction per dataset or release unit.
 - Validate units, positive quantities, ingredient references, and recipe nutrition.
 - Report created, updated, unchanged, and rejected records.
 - Support a dry-run validation mode.
-- Store a dataset/seed version.
 - Never delete user inventory.
 
 The initial file may contain a small curated dataset. Future scraped data can replace or expand the dataset through the same validated seed pipeline.
@@ -1019,7 +997,7 @@ Both rule-based MVP and future XGBoost/LightGBM adapters return identical result
 
 | Job | Frequency/trigger | Idempotency behavior |
 |---|---|---|
-| Expiration scan | Daily per user timezone | Deduplicate by batch, notification type, and effective date |
+| Expiration scan | Daily in `Asia/Ho_Chi_Minh` | Deduplicate by batch, notification type, and effective date |
 | FCM delivery | On notification creation | Deduplicate by notification/device; bounded retries |
 | Invalid device cleanup | After permanent FCM failure | Repeated disable operation is safe |
 | Extraction cleanup | Scheduled if temporary files exist | Delete only expired transient objects |
@@ -1072,13 +1050,13 @@ Under expected MVP load, measured server-side excluding external-provider latenc
 
 ### 15.4 Accessibility and localization support
 
-Backend messages use stable error codes; clients own user-facing localization. Seeded names/descriptions may support localized fields later. Currency defaults to VND and timezone defaults to `Asia/Ho_Chi_Minh`, while remaining configurable per user.
+Backend messages use stable error codes; clients own user-facing localization. Seeded names/descriptions may support localized fields later. Monetary display defaults to VND and all MVP expiration windows use `Asia/Ho_Chi_Minh`.
 
 ## 16. Testing Requirements
 
 ### 16.1 Unit tests
 
-- Unit conversion and incompatible dimensions.
+- Unit conversion and incompatible unit groups.
 - Shelf-life rule precedence.
 - Freshness-state calculation at boundary timestamps.
 - FEFO ordering.
@@ -1209,14 +1187,14 @@ WireMock fixtures must cover:
 |---|---|---|
 | Manual entry is burdensome | Low inventory accuracy/adoption | Keep required fields minimal; return estimates; later convert extraction output into confirmable drafts |
 | OCR/ASR output is inaccurate | Bad ingredient data | Do not persist in MVP; return confidence/warnings; require later user confirmation |
-| Unit mismatch prevents recipe matching | Weak recommendations | Canonical dimensions, explicit conversions, validation, and missing-data warnings |
+| Unit mismatch prevents recipe matching | Weak recommendations | Canonical-unit groups, explicit conversions, validation, and missing-data warnings |
 | Shelf-life estimate is unsafe | Food-safety concern | Manufacturer date precedence, source labels, conservative rules, disclaimers, user overrides with audit |
 | Mock recommendations appear arbitrary | Low trust | Deterministic scoring and component explanations |
 | Future ML model changes API shape | Rework across clients | Stable provider interface and public result contract |
 | OTP abuse increases cost | Cost/security incident | Multi-dimensional rate limits, cooldowns, hashed OTPs, provider monitoring |
 | SMS delivery is blocked/delayed | Login failure | Registered Brandname/template, alternate verified email, resend controls, provider abstraction |
 | Concurrent cooking causes negative stock | Corrupt inventory | Transactional row locks, revalidation, idempotency keys |
-| Seed scrape quality is poor | Broken catalog/nutrition | Schema validation, dry run, stable source keys, dataset version, reject report |
+| Seed scrape quality is poor | Broken catalog/nutrition | Schema validation, dry run, deterministic natural keys, reject report |
 
 ## 20. Open Implementation Decisions
 

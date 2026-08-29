@@ -139,7 +139,7 @@ Database documentation and migrations are sequential. Feature slices may run in 
 | 4.2 | Shelf-life estimation/freshness service and unit-conversion service | 4.1, 3.1 |
 | 4.3 | Manual batch CRUD, filtering, detail, archiving, and ownership enforcement APIs | 4.1–4.2 |
 | 4.4 | Aggregate inventory summary and explicit adjustment/discard APIs with ledger output | 4.3 |
-| 4.5 | FEFO allocation engine, locking/version strategy, and concurrency tests | 4.1–4.4 |
+| 4.5 | FEFO allocation engine, row-lock/idempotency strategy, and concurrency tests | 4.1–4.4 |
 
 **Checkpoint:** Two batches of the same ingredient with different expiry dates are stored and queried independently; all changes are ledgered; FEFO allocation is deterministic and never returns negative stock.
 
@@ -179,7 +179,7 @@ Database documentation and migrations are sequential. Feature slices may run in 
 |---|---|---|
 | 7.1 | Device registration and notification migrations/models/API | Phase 2 |
 | 7.2 | Worker/scheduler bootstrap, job observability, and FCM provider interface/mock adapter | Phase 1, 7.1 |
-| 7.3 | Daily per-timezone expiry scan with deduplication and retry policy | 7.2, 4.2–4.4 |
+| 7.3 | Daily `Asia/Ho_Chi_Minh` expiry scan with deduplication and retry policy | 7.2, 4.2–4.4 |
 | 7.4 | FCM delivery, invalid-token cleanup, notification list/read APIs, and job tests | 7.3 |
 
 **Checkpoint:** A qualifying batch produces exactly one notification in the configured window; a retry never duplicates a user notification.
@@ -240,10 +240,10 @@ Never parallelize migrations that touch the same table family, changes to shared
 |---|---|---|
 | Schema drifts from PRD | High rework | Phase 0 approval; map every PRD entity to a documented table |
 | Batch/FEFO logic creates negative stock | Data integrity failure | Database constraints, row locks, idempotency keys, concurrency tests |
-| Unit incompatibility breaks matching | Poor recommendations/cooking failures | Explicit dimensions/conversions and warning/error contracts |
+| Unit incompatibility breaks matching | Poor recommendations/cooking failures | Explicit unit-group conversions and warning/error contracts |
 | OTP providers behave differently | Login instability | Backend-owned OTPs and provider adapters with WireMock contract tests |
 | External OCR/ASR output is unreliable | Bad inventory data | Do not persist extraction output in MVP; return warnings/confidence |
-| Seed data quality is weak | Recipe/recommendation quality degradation | Upserted seed versions, dry run, validation, rejection report |
+| Seed data quality is weak | Recipe/recommendation quality degradation | Deterministic natural-key upserts, dry run, validation, rejection report |
 | Scope expands to model training or admin UI | MVP delay | Keep model interface only and admin seed-only; enforce Phase checkpoints |
 | Background notification retries duplicate messages | User trust loss | Notification deduplication key and idempotent job design |
 

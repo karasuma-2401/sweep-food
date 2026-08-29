@@ -10,14 +10,14 @@
 
 **Acceptance criteria:**
 
-- [ ] Documents users, sessions, catalog, recipes, inventory batches/ledger, recommendations, meal plans, cooking, shopping, devices, and notifications.
-- [ ] Replaces `user_ingredient` with batch-level inventory and an immutable quantity ledger.
-- [ ] Defines enum values and all primary/foreign/unique keys required by the PRD.
+- [x] Documents users, sessions, catalog, recipes, inventory batches/ledger, recommendations, meal plans, cooking, shopping, devices, and notifications.
+- [x] Replaces `user_ingredient` with batch-level inventory and an immutable quantity ledger.
+- [x] Defines enum values and all primary/foreign/unique keys required by the PRD.
 
 **Verification:**
 
-- [ ] Trace every PRD data entity to a table or explicitly documented Redis-only structure.
-- [ ] Review FEFO, OTP/session, cooking, and notification scenarios against the schema.
+- [x] Trace every PRD data entity to a table or explicitly documented Redis-only structure.
+- [x] Review FEFO, OTP/session, cooking, and notification scenarios against the schema.
 
 **Dependencies:** None.  
 **Files likely touched:** `src/backend/docs/DATABASE.txt`  
@@ -25,7 +25,7 @@
 
 ### Task 0.2: Add schema migration mapping and invariants
 
-**Description:** Append a migration/reference section to `DATABASE.txt` that maps each old conceptual table to its MVP successor and states non-negotiable data invariants.
+**Description:** Add the migration/reference section to `DATABASE_NOTES.md`, mapping each old conceptual table to its MVP successor and stating non-negotiable data invariants.
 
 **Acceptance criteria:**
 
@@ -39,7 +39,7 @@
 - [ ] No existing ambiguous field name remains in the canonical schema.
 
 **Dependencies:** Task 0.1.  
-**Files likely touched:** `src/backend/docs/DATABASE.txt`  
+**Files likely touched:** `src/backend/docs/DATABASE_NOTES.md`
 **Estimated scope:** S
 
 ### Checkpoint: Phase 0
@@ -239,7 +239,7 @@
 
 ### Task 3.1: Add catalog and recipe migrations/models
 
-**Description:** Implement categories, master ingredients, aliases, shelf-life rules, recipes, and recipe ingredients with validated units and seed-source/version fields.
+**Description:** Implement categories, master ingredients, aliases, shelf-life rules, recipes, and recipe ingredients with validated units and deterministic natural-key seed upserts.
 
 **Acceptance criteria:**
 
@@ -323,7 +323,7 @@
 
 ### Task 4.1: Add inventory batch and ledger persistence
 
-**Description:** Implement batch-level inventory and immutable ledger migrations/models, including storage mode, expiration source, batch status, quantities, optimistic version, and user ownership.
+**Description:** Implement batch-level inventory and immutable ledger migrations/models, including storage mode, expiration source, batch status, quantities, and user ownership.
 
 **Acceptance criteria:**
 
@@ -346,9 +346,9 @@
 
 **Acceptance criteria:**
 
-- [ ] Gram/kilogram and milliliter/liter convert correctly; incompatible dimensions do not convert.
+- [ ] Gram/kilogram and milliliter/liter convert correctly; incompatible unit groups do not convert.
 - [ ] Manufacturer expiration is never replaced by an estimated rule.
-- [ ] Expired, expiring-soon, safe, and unknown states use user timezone/configured windows correctly.
+- [ ] Expired, expiring-soon, safe, and unknown states use `Asia/Ho_Chi_Minh` and configured windows correctly.
 
 **Verification:**
 
@@ -426,7 +426,7 @@
 
 ### Task 5.1: Add planning and recommendation persistence
 
-**Description:** Implement recommendation run/item/event, meal plan/item, favorites, shopping list/item migrations and models.
+**Description:** Implement recommendation run/item, meal plan/item, favorites, shopping list/item migrations and models.
 
 **Acceptance criteria:**
 
@@ -462,15 +462,15 @@
 **Files likely touched:** `src/backend/src/module/recommendations/*`, `src/backend/src/service/*`, tests  
 **Estimated scope:** M
 
-### Task 5.3: Expose recommendations and capture events
+### Task 5.3: Expose and persist recommendations
 
-**Description:** Implement the recommendation endpoint, result persistence, score-explanation contract, and impression/selection/dismissal event capture.
+**Description:** Implement the recommendation endpoint, result persistence, and score-explanation contract.
 
 **Acceptance criteria:**
 
 - [ ] Response returns three to five recipes when enough candidates exist.
 - [ ] Each item contains total score, components, provider, missing ingredients, and explanation data.
-- [ ] Event writes are owned by the requesting user and do not modify inventory.
+- [ ] Recommendation persistence is owned by the requesting user and does not modify inventory.
 
 **Verification:**
 
@@ -494,7 +494,7 @@
 **Verification:**
 
 - [ ] API tests cover duplicate/slot validation and cross-user access denial.
-- [ ] Selected recommendation records a `selected` event.
+- [ ] Selecting a recommendation can be linked to its `recommendation_run_id` from the meal-plan item.
 
 **Dependencies:** Task 5.1, Task 5.3.  
 **Files likely touched:** `src/backend/src/module/meal_plans/*`, `src/backend/src/module/recipes/*`, tests  
@@ -651,7 +651,7 @@
 
 ### Task 7.3: Implement expiry scan and deduplicated delivery workflow
 
-**Description:** Implement the per-timezone daily job that selects qualifying active batches, creates notifications once per window, and sends through the FCM adapter with bounded retry.
+**Description:** Implement the daily `Asia/Ho_Chi_Minh` job that selects qualifying active batches, creates notifications once per window, and sends through the FCM adapter with bounded retry.
 
 **Acceptance criteria:**
 
@@ -661,7 +661,7 @@
 
 **Verification:**
 
-- [ ] Timezone/boundary/deduplication tests pass.
+- [ ] `Asia/Ho_Chi_Minh` boundary and deduplication tests pass.
 - [ ] Retry test proves one user-visible notification record remains.
 
 **Dependencies:** Task 7.2, Tasks 4.2–4.4.  

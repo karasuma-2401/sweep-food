@@ -1,135 +1,442 @@
 enum AccountStatus {
   ACTIVE
-  BANNED 
+  BANNED
   UNVERIFIED
 }
-enum MeasuremntUnit {
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum MeasurementUnit {
   KG
   GRAM
   LITER
   ML
-  L
-  M
-  PIEPCE 
-  PACK 
-  OTHER 
+  PIECE
+  PACK
+  OTHER
 }
-table user {
-  id string PK  //uuid 
-  name string 
-  phone string 
-  role string //admin, user 
-  status AccountStatus 
-  created_at datetime 
+
+enum StorageMode {
+  ROOM_TEMPERATURE
+  REFRIGERATED
+  FROZEN
+  DRY_SHELF
 }
-//Admin's standard ingredient data - Admin will seed this 
-table master_ingredient {
-  id string PK 
-  name string 
-  media_url string 
-  category string 
-  description string //Short description. Use for AI understanding context
-  other_nutrions jsonb //calories, sugar, salt... energy number 
-  // Bo chi so dinh duong, tinh tren 1 don vi goc cua nguyen lieu 
-  calories float       
-  protein_g float      
-  fat_g float          
-  carbs_g float        
-  sugar_g float        
-  sodium_mg float
-  //Hinh thuc bao quan 
-  maintainance_type string 
-  unit MeasuremntUnit 
+
+enum ShelfLifeRuleScope {
+  INGREDIENT
+  CATEGORY
 }
-table user_ingredient {
-  id string PK 
-  user_id string 
-  master_ingredeint_id string //Connect with standard data 
-  custom_name string //Name that user will set 
-  quantity float 
-  note string  
-  unit MeasuremntUnit 
-  expires_at datetime 
-  created_at datetime 
-  updated_at datetime 
+
+enum InventoryBatchType {
+  RAW_INGREDIENT
+  COOKED_FOOD
 }
-table media {
-  id string PK 
-  media_type string //png, jpg, jpeg,... 
-  url string //Luu tru thong tin cac media do nguo dung upload 
-  created_by string 
-  created_at datetime 
-  updated_at datetime 
+
+enum InventoryBatchStatus {
+  ACTIVE
+  DEPLETED
+  DISCARDED
+  ARCHIVED
 }
-// Recipe in pur system. Admin will seed this 
-table recipe {  //Cong thuc luu tru ben trong he thong 
-  id string PK 
-  media_url string 
-  name string 
-  description string //Cong thuc nau an 
-  estimated_cost float 
-  //Denormalization - Admin se tieens hanh cong lai dua tren cac nguyen lieu da su dung tu cong thuc nau an 
-  // Lay quantity * chi so dinh duong la se ra duoc 
-  total_calories float   
-  total_protein_g float  
-  total_fat_g float      
-  total_carbs_g float    
-  total_sugar_g float 
-  other_nutrions jsonb //energy number estimated infromation: {calo: 12, sugar: 18, ...}
-  created_at datetime 
-  created_by string //Nguoi dung nao da tao ra cong thuc nau an nay 
-  updated_at datetime 
+
+enum ExpirationSource {
+  MANUFACTURER
+  ESTIMATED
+  USER_OVERRIDE
+  UNKNOWN
 }
-//Denormalization: Chi tiết cách dùng từng nguyên liệu trong công thức 
-table recipe_ingredient {
-  id string PK 
-  media_url string // Nullable -> fallback to ingredient image 
-  recipe_id string 
-  master_ingredient_id string 
-  required_quantity float 
-  unit MeasuremntUnit  
+
+enum InventorySource {
+  MANUAL
+  LEFTOVER
 }
-table ai_meal_plan {
-  id string PK 
-  user_id string PK 
-  request_criteria jonb //user request. Change to json format 
-  ai_summary string // AI's summary answer for user's request 
-  ai_response jonb //Array: [recipe_1, recipe_2 , recipe_1, recipe_2...] Array - recipe_id that ai will using 
-  created_at datetime  
+
+enum InventoryLedgerEventType {
+  INITIAL_STOCK
+  MANUAL_ADJUSTMENT
+  COOKING_CONSUMPTION
+  DISCARDED
+  LEFTOVER_CREATED
+  CORRECTION
 }
-//Cái này fix sau mệt rồi 
-table shoopping_plan {
-  id string PK 
-  user_id string
-  ingredient_id string //FK: master_ingredient_id 
-  estimated_cost float 
-  quantity int 
+
+enum RecommendationProviderType {
+  RULE_BASED_MVP
+  XGBOOST
+  LIGHTGBM
 }
-table cooking_history {
-  id string PK 
-  user_id string 
-  recipe_id string 
-  total_serving int //Nấu bao nhiêu phần từ công thức này 
-  created_at datetime 
+
+enum MealSlot {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
 }
-table user_favorite_menu {
-  id string PK 
-  name string 
-  description string 
-  user_id string 
-  created_at datetime 
-  updated_at datetime 
+
+enum MealPlanItemStatus {
+  PLANNED
+  COMPLETED
+  SKIPPED
+}
+
+enum CookingSessionStatus {
+  PLANNED
+  COMPLETED
+  CANCELLED
+}
+
+enum CookingConsumptionMode {
+  EXACT
+  HALF
+  USE_ALL_MATCHED
+  CUSTOM
+}
+
+enum ShoppingListStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum NotificationType {
+  EXPIRING_SOON
+  EXPIRES_TODAY
+  EXPIRED
+  LEFTOVER_REMINDER
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  DISMISSED
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  SENT
+  RETRYING
+  FAILED
+}
+
+enum DevicePlatform {
+  ANDROID
+  IOS
+  WEB
+}
+
+table users {
+  id string PK // uuid
+  name string // nullable
+  phone_e164 string
+  phone_verified_at datetime // nullable
+  email string // nullable
+  email_verified_at datetime // nullable
+  role UserRole
+  status AccountStatus
+  preferences jsonb
+  created_at datetime
+  updated_at datetime
+}
+// Lưu trữ dữ liệu bền vững. Cái này phù hợp cho PostgreSQL
+table auth_sessions {
+  id string PK // uuid
+  user_id string  // users.id
+  refresh_token_hash string
+  token_family_id string // uuid
+  device_label string // nullable
+  ip_address string // nullable
+  user_agent string // nullable
+  expires_at datetime
+  revoked_at datetime // nullable
+  created_at datetime
+  last_used_at datetime // nullable
+}
+// Bảng loại nguyên liệu
+table ingredient_categories {
+  id string PK // uuid
+  name string
+  description string // nullable
+  created_at datetime
+  updated_at datetime
+}
+
+// Admin seeds canonical ingredient data.
+table master_ingredients {
+  id string PK // uuid
+  name string
+  description string
+  category_id string  // ingredient_categories.id
+  default_media_url string // nullable
+  canonical_unit MeasurementUnit
+  calories float // nullable, per 100 g where applicable
+  protein_g float // nullable
+  fat_g float // nullable
+  carbs_g float // nullable
+  sugar_g float // nullable
+  sodium_mg float // nullable
+  other_nutrients jsonb
+  default_storage_mode StorageMode // nullable
+  created_at datetime
+  updated_at datetime
+}
+// Hỗ trợ cho chức năng tìm kiếm. Ví dụ: thịt lợn -> thịt heo
+table ingredient_aliases {
+  id string PK // uuid
+  master_ingredient_id string  // master_ingredients.id
+  alias string
+  normalized_alias string
+  created_at datetime
+}
+
+table shelf_life_rules {
+  id string PK // uuid
+  scope ShelfLifeRuleScope
+  master_ingredient_id string  // nullable, master_ingredients.id
+  category_id string  // nullable, ingredient_categories.id
+  storage_mode StorageMode
+  min_days integer
+  max_days integer
+  default_days integer
+  created_at datetime
+  updated_at datetime
+}
+
+// Admin seeds read-only MVP recipes.
+table recipes {
+  id string PK // uuid
+  name string
+  description string
+  instructions jsonb
+  media_url string // nullable
+  default_servings float
+  estimated_cooking_minutes integer
+  estimated_cost float // nullable
+  total_calories float // nullable
+  total_protein_g float // nullable
+  total_fat_g float // nullable
+  total_carbs_g float // nullable
+  total_sugar_g float // nullable
+  other_nutrients jsonb
+  tags jsonb
+  created_at datetime
+  updated_at datetime
+}
+
+table recipe_ingredients {
+  id string PK // uuid
+  recipe_id string  // recipes.id
+  master_ingredient_id string  // master_ingredients.id
+  required_quantity float
+  unit MeasurementUnit
+  is_optional boolean
+  preparation_note string // nullable
+  created_at datetime
+}
+
+// Each row is a separate user-owned batch; never merge different expiry dates.
+table inventory_batches {
+  id string PK // uuid
+  user_id string  // users.id
+  master_ingredient_id string  // nullable, master_ingredients.id
+  custom_name string // nullable
+  batch_type InventoryBatchType
+  initial_quantity float
+  current_quantity float
+  unit MeasurementUnit
+  storage_mode StorageMode
+  status InventoryBatchStatus
+  purchased_at datetime // nullable
+  packaged_at datetime // nullable
+  stored_at datetime // nullable
+  expires_at datetime // nullable
+  expiration_source ExpirationSource
+  unit_cost float // nullable
+  note string // nullable
+  media_url string // nullable
+  source InventorySource
+  source_cooking_session_id string  // nullable, cooking_sessions.id
+  created_at datetime
+  updated_at datetime
+  archived_at datetime // nullable
+}
+
+table inventory_ledger_entries {
+  id string PK // uuid
+  user_id string  // users.id
+  inventory_batch_id string  // inventory_batches.id
+  event_type InventoryLedgerEventType
+  quantity_before float
+  quantity_delta float
+  quantity_after float
+  unit MeasurementUnit
+  cooking_session_id string  // nullable, cooking_sessions.id
+  idempotency_key string // nullable
+  created_at datetime
+}
+
+table recommendation_runs {
+  id string PK // uuid
+  user_id string  // users.id
+  criteria jsonb
+  provider RecommendationProviderType
+  model_version string // nullable
+  summary string // nullable
+  created_at datetime
+}
+
+table recommendation_items {
+  id string PK // uuid
+  recommendation_run_id string  // recommendation_runs.id
+  recipe_id string  // recipes.id
+  rank integer
+  total_score float
+  expiration_utilization_score float
+  availability_score float
+  preference_fit_score float
+  purchase_minimization_score float
+  explanation jsonb
+  created_at datetime
+}
+
+table meal_plans {
+  id string PK // uuid
+  user_id string  // users.id
+  name string // nullable
+  starts_on date
+  ends_on date
+  created_at datetime
+  updated_at datetime
+}
+
+table meal_plan_items {
+  id string PK // uuid
+  meal_plan_id string  // meal_plans.id
+  recipe_id string  // recipes.id
+  recommendation_run_id string  // nullable, recommendation_runs.id
+  planned_for date
+  meal_slot MealSlot
+  servings float
+  status MealPlanItemStatus
+  created_at datetime
+  updated_at datetime
+}
+
+table cooking_sessions {
+  id string PK // uuid
+  user_id string  // users.id
+  recipe_id string  // recipes.id
+  meal_plan_item_id string  // nullable, meal_plan_items.id
+  servings float
+  status CookingSessionStatus
+  consumption_mode CookingConsumptionMode // nullable
+  nutrition_snapshot jsonb
+  idempotency_key string // nullable
+  completed_at datetime // nullable
+  created_at datetime
+  updated_at datetime
+}
+
+table cooking_consumptions {
+  id string PK // uuid
+  cooking_session_id string  // cooking_sessions.id
+  recipe_ingredient_id string  // nullable, recipe_ingredients.id
+  inventory_batch_id string  // inventory_batches.id
+  quantity float
+  unit MeasurementUnit
+  created_at datetime
+}
+
+table shopping_lists {
+  id string PK // uuid
+  user_id string  // users.id
+  meal_plan_id string  // nullable, meal_plans.id
+  status ShoppingListStatus
+  generated_at datetime // nullable
+  created_at datetime
+  updated_at datetime
+}
+
+table shopping_list_items {
+  id string PK // uuid
+  shopping_list_id string  // shopping_lists.id
+  master_ingredient_id string  // nullable, master_ingredients.id
+  custom_name string // nullable
+  required_quantity float
+  available_quantity float
+  missing_quantity float
+  unit MeasurementUnit
+  estimated_cost float // nullable
+  is_checked boolean
+  source_metadata jsonb
+  created_at datetime
+  updated_at datetime
+}
+
+table favorite_recipes {
+  id string PK // uuid
+  user_id string  // users.id
+  recipe_id string  // recipes.id
+  created_at datetime
+}
+
+table favorite_menus {
+  id string PK // uuid
+  user_id string  // users.id
+  name string
+  description string // nullable
+  created_at datetime
+  updated_at datetime
+}
+
+table favorite_menu_items {
+  id string PK // uuid
+  favorite_menu_id string  // favorite_menus.id
+  recipe_id string  // recipes.id
+  created_at datetime
+  updated_at datetime
+}
+
+table device_registrations {
+  id string PK // uuid
+  user_id string  // users.id
+  fcm_token_hash string
+  encrypted_fcm_token string
+  platform DevicePlatform
+  is_enabled boolean
+  last_seen_at datetime
+  created_at datetime
+  updated_at datetime
+}
+
+table user_notification_preferences {
+  id string PK // uuid
+  user_id string  // users.id
+  warning_days integer // nullable
+  expiring_soon_enabled boolean
+  expires_today_enabled boolean
+  expired_enabled boolean
+  leftover_reminder_enabled boolean
+  created_at datetime
+  updated_at datetime
+}
+
+table notifications {
+  id string PK // uuid
+  user_id string  // users.id
+  inventory_batch_id string  // nullable, inventory_batches.id
+  type NotificationType
+  title string
+  body string
+  payload jsonb
+  deduplication_key string
+  status NotificationStatus
+  delivery_status NotificationDeliveryStatus
+  scheduled_at datetime // nullable
+  sent_at datetime // nullable
+  retry_count integer
+  created_at datetime
+  updated_at datetime
 } 
-table user_favorite_menu_item {
-  id string PK 
-  menu_id string //FK 
-  cooking_recipe_id string //FK  
-  created_at datetime 
-  updated_at datetime 
-}
-table user_favorite_recipe {
-  id string PK 
-  user_id string 
-  recipe_id string 
-  created_at datetime 
-}

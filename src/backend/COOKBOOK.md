@@ -22,12 +22,13 @@ Neon is PostgreSQL, not a separate database model. Use standard PostgreSQL migra
 Use these files as the project context, in this order:
 
 1. [`docs/prd.md`](docs/prd.md) — product scope, API contracts, data model, security, and acceptance criteria.
-2. [`docs/DATABASE.txt`](docs/DATABASE.txt) — canonical schema design. Phase 0 must update and approve it before migrations are written.
-3. [`docs/decisions/ADR-001-neon-postgresql.md`](docs/decisions/ADR-001-neon-postgresql.md) — rationale and operational consequences of Neon.
-4. [`../../tasks/plan.md`](../../tasks/plan.md) and [`../../tasks/todo.md`](../../tasks/todo.md) — dependency order and task-level verification.
-5. [`AGENT.md`](AGENT.md) — mandatory Python quality rules: full type hints, no broad exceptions, Ruff, mypy strict, and pylint.
-6. This cookbook — operational commands, environment boundaries, and common workflows.
-7. [`CHANGELOG.md`](CHANGELOG.md) — record externally meaningful changes in the same change set.
+2. [`docs/DATABASE.txt`](docs/DATABASE.txt) — enum/table syntax for quick schema review. Phase 0 must update and approve it before migrations are written.
+3. [`docs/DATABASE_NOTES.md`](docs/DATABASE_NOTES.md) — constraints, indexes, Redis state, relationship notes, and data rules.
+4. [`docs/decisions/ADR-001-neon-postgresql.md`](docs/decisions/ADR-001-neon-postgresql.md) — rationale and operational consequences of Neon.
+5. [`../../tasks/plan.md`](../../tasks/plan.md) and [`../../tasks/todo.md`](../../tasks/todo.md) — dependency order and task-level verification.
+6. [`AGENT.md`](AGENT.md) — mandatory Python quality rules: full type hints, no broad exceptions, Ruff, mypy strict, and pylint.
+7. This cookbook — operational commands, environment boundaries, and common workflows.
+8. [`CHANGELOG.md`](CHANGELOG.md) — record externally meaningful changes in the same change set.
 
 Do not implement a task simply because a stub folder exists. Confirm that its task dependencies and phase checkpoint are complete first.
 
@@ -237,7 +238,7 @@ Do not create an inventory batch from extraction until a later product phase add
 | Tests touch unexpected data | Test database URL/branch and fixtures | Stop immediately; switch to isolated branch before rerunning |
 | OTP cannot be verified | Challenge TTL/purpose, rate-limit state, mock/provider response | Inspect redacted correlation IDs; never log the OTP |
 | Recommendation looks wrong | Inventory snapshot, units, expiry state, seeded recipe requirements | Add a deterministic unit test before changing weights |
-| Cooking would over-consume stock | Batch lock/version, idempotency key, FEFO allocation | Return conflict; do not apply partial deductions |
+| Cooking would over-consume stock | Batch row lock, idempotency key, FEFO allocation | Return conflict; do not apply partial deductions |
 | Extraction provider times out | Provider timeout, WireMock fixture, input validation | Return mapped retryable error; do not persist input/output |
 
 ## 11. Change Management
@@ -254,7 +255,8 @@ Do not create an inventory batch from extraction until a later product phase add
 |---|---|---|
 | Backend protocol | `src/backend/AGENT.md` | Mandatory Python quality and implementation constraints |
 | Product requirements | `src/backend/docs/prd.md` | Scope, acceptance criteria, API/data rules |
-| Database contract | `src/backend/docs/DATABASE.txt` | Schema design before migrations |
+| Database table syntax | `src/backend/docs/DATABASE.txt` | Enum and table shape before migrations |
+| Database notes | `src/backend/docs/DATABASE_NOTES.md` | Constraints, indexes, Redis state, and data rules |
 | Architecture decision | `src/backend/docs/decisions/ADR-001-neon-postgresql.md` | Why Neon is used and how to migrate/test safely |
 | Delivery plan | `tasks/plan.md` | Phase order, dependencies, risks |
 | Task checklist | `tasks/todo.md` | Small executable tasks and verification |

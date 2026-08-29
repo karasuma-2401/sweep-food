@@ -15,6 +15,10 @@ All notable backend changes are recorded in this file. The format follows [Keep 
 ### Changed
 
 - Backend database planning now targets Neon PostgreSQL instead of a local PostgreSQL container.
+- Replaced the early conceptual database notes with the canonical MVP schema contract covering identity, catalog, batch inventory, FEFO audit data, recommendations, planning, cooking, shopping, and notifications.
+- Split database documentation into table syntax (`DATABASE.txt`) and operational/design notes (`DATABASE_NOTES.md`) for faster schema review.
+- Restored complete PRD data coverage after clarifying that the smaller user-provided schema was a reference, not a request to remove persistent MVP flows.
+- Simplified the database contract from the user-approved `DATABASE.txt`: removed per-user timezone and redundant dimension/seed/version metadata, removed recommendation-event persistence, and aligned all documents to the remaining schema.
 
 ### Security
 
