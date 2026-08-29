@@ -1,21 +1,54 @@
 # Sweep Food Backend
 
-Run the API from this directory:
+Backend API for inventory batches, expiry tracking, authentication, and meal recommendations.
+
+## Technology
+
+![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.141-009688?logo=fastapi&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-4169E1?logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-7.4-DC382D?logo=redis&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+![WireMock](https://img.shields.io/badge/WireMock-3.13.2-FF6F00)
+
+## Requirements
+
+- Python 3.11
+- uv 0.12.5
+- A Neon PostgreSQL connection string
+
+## Setup and Run
+
+Run these commands from this directory (`src/backend`):
 
 ```bash
+cp .env.example .env
 uv sync
-uv run python main.py
+uv run main.py
 ```
 
-The API prefix is `/api`. The initial health module provides:
+Set `DATABASE_URL` in `.env`, or contact Cloudian for the project environment file.
 
-- `GET /api/health/liveness` — JSON process liveness response.
-- `GET /api/health/error` — deterministic global-error response.
-- `GET /api/health/text` — `Build with Cloudian Love Cloud` as plain text.
+The API runs at `http://localhost:4000/api`.
 
-Each feature module follows the same four-file layout:
+```text
+GET /api/health/liveness
+GET /api/health/error
+GET /api/health/text
+```
 
-- `*_router.py`
-- `*_service.py`
-- `*_dependency.py`
-- `*_dto.py`
+## Structure
+
+```text
+src/
+├── app.py                   # FastAPI application setup
+├── core/                    # Settings and global exceptions
+├── module/                  # Feature modules
+│   └── health/              # Router, service, dependency, and DTO
+├── model/                   # Database models
+└── service/                 # Shared services
+```
+
+Each feature module uses four files: `*_router.py`, `*_service.py`, `*_dependency.py`, and `*_dto.py`.
+
+Build with Cloudian 💙 Cloud
