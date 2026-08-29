@@ -1,0 +1,135 @@
+enum AccountStatus {
+  ACTIVE
+  BANNED 
+  UNVERIFIED
+}
+enum MeasuremntUnit {
+  KG
+  GRAM
+  LITER
+  ML
+  L
+  M
+  PIEPCE 
+  PACK 
+  OTHER 
+}
+table user {
+  id string PK  //uuid 
+  name string 
+  phone string 
+  role string //admin, user 
+  status AccountStatus 
+  created_at datetime 
+}
+//Admin's standard ingredient data - Admin will seed this 
+table master_ingredient {
+  id string PK 
+  name string 
+  media_url string 
+  category string 
+  description string //Short description. Use for AI understanding context
+  other_nutrions jsonb //calories, sugar, salt... energy number 
+  // Bo chi so dinh duong, tinh tren 1 don vi goc cua nguyen lieu 
+  calories float       
+  protein_g float      
+  fat_g float          
+  carbs_g float        
+  sugar_g float        
+  sodium_mg float
+  //Hinh thuc bao quan 
+  maintainance_type string 
+  unit MeasuremntUnit 
+}
+table user_ingredient {
+  id string PK 
+  user_id string 
+  master_ingredeint_id string //Connect with standard data 
+  custom_name string //Name that user will set 
+  quantity float 
+  note string  
+  unit MeasuremntUnit 
+  expires_at datetime 
+  created_at datetime 
+  updated_at datetime 
+}
+table media {
+  id string PK 
+  media_type string //png, jpg, jpeg,... 
+  url string //Luu tru thong tin cac media do nguo dung upload 
+  created_by string 
+  created_at datetime 
+  updated_at datetime 
+}
+// Recipe in pur system. Admin will seed this 
+table recipe {  //Cong thuc luu tru ben trong he thong 
+  id string PK 
+  media_url string 
+  name string 
+  description string //Cong thuc nau an 
+  estimated_cost float 
+  //Denormalization - Admin se tieens hanh cong lai dua tren cac nguyen lieu da su dung tu cong thuc nau an 
+  // Lay quantity * chi so dinh duong la se ra duoc 
+  total_calories float   
+  total_protein_g float  
+  total_fat_g float      
+  total_carbs_g float    
+  total_sugar_g float 
+  other_nutrions jsonb //energy number estimated infromation: {calo: 12, sugar: 18, ...}
+  created_at datetime 
+  created_by string //Nguoi dung nao da tao ra cong thuc nau an nay 
+  updated_at datetime 
+}
+//Denormalization: Chi tiết cách dùng từng nguyên liệu trong công thức 
+table recipe_ingredient {
+  id string PK 
+  media_url string // Nullable -> fallback to ingredient image 
+  recipe_id string 
+  master_ingredient_id string 
+  required_quantity float 
+  unit MeasuremntUnit  
+}
+table ai_meal_plan {
+  id string PK 
+  user_id string PK 
+  request_criteria jonb //user request. Change to json format 
+  ai_summary string // AI's summary answer for user's request 
+  ai_response jonb //Array: [recipe_1, recipe_2 , recipe_1, recipe_2...] Array - recipe_id that ai will using 
+  created_at datetime  
+}
+//Cái này fix sau mệt rồi 
+table shoopping_plan {
+  id string PK 
+  user_id string
+  ingredient_id string //FK: master_ingredient_id 
+  estimated_cost float 
+  quantity int 
+}
+table cooking_history {
+  id string PK 
+  user_id string 
+  recipe_id string 
+  total_serving int //Nấu bao nhiêu phần từ công thức này 
+  created_at datetime 
+}
+table user_favorite_menu {
+  id string PK 
+  name string 
+  description string 
+  user_id string 
+  created_at datetime 
+  updated_at datetime 
+} 
+table user_favorite_menu_item {
+  id string PK 
+  menu_id string //FK 
+  cooking_recipe_id string //FK  
+  created_at datetime 
+  updated_at datetime 
+}
+table user_favorite_recipe {
+  id string PK 
+  user_id string 
+  recipe_id string 
+  created_at datetime 
+}
