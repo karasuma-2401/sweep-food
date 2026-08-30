@@ -11,7 +11,7 @@
 **Người dùng:** người trẻ 18–30 tuổi ở đô thị, sống một mình / ở ghép, tự nấu ≥ 3 bữa/tuần, **ngại nhập liệu thủ công**.
 
 **3 giá trị cốt lõi phải thể hiện xuyên suốt UI (mục 10 spec):**
-1. Tiết kiệm thực phẩm & chi phí → luôn hiển thị "giá trị đã tiết kiệm", ưu tiên nguyên liệu cận hạn.
+1. Tiết kiệm thực phẩm → hiển thị **số nguyên liệu đã dùng trước hạn** / lượng tránh lãng phí (kg), ưu tiên nguyên liệu cận hạn. *(Không hiển thị giá trị tiền: OCR quét không lấy được giá nguyên liệu — bỏ toàn bộ tính năng "tiền tiết kiệm".)*
 2. Giảm thời gian ra quyết định → chỉ 3–5 gợi ý món, không danh sách dài.
 3. Hỗ trợ lựa chọn bữa ăn → dinh dưỡng E/P/C/L theo khẩu phần, dễ so sánh.
 
@@ -19,7 +19,7 @@
 - **Ít thao tác nhất.** Mọi luồng nhập liệu ưu tiên camera/giọng nói; nhập tay là phương án cuối.
 - **Preview trước khi lưu.** Kết quả OCR/giọng nói luôn cho user xem & sửa trước khi ghi vào kho.
 - **Ưu tiên theo hạn dùng.** Màu sắc + thứ tự sắp xếp phản ánh mức khẩn cấp.
-- **Vòng lặp khép kín:** nhập kho → thấy cận hạn → gợi ý món → xác nhận đã nấu → tự trừ kho + ghi tiết kiệm.
+- **Vòng lặp khép kín:** nhập kho → thấy cận hạn → gợi ý món → xác nhận đã nấu → tự trừ kho + ghi nhận chống lãng phí.
 - Ngôn ngữ mặc định **tiếng Việt**. Tiền tệ `39.000đ`, ngày `05/09`, hạn dùng dạng tương đối "còn 2 ngày" / "quá hạn 1 ngày".
 - Mobile-first. Web/tablet: bố cục căn giữa, `max-width` ~ 520–600px cho MVP (2-pane để sau).
 
@@ -59,7 +59,7 @@ Cây thư mục `lib/` chi tiết: xem phần 8. Hợp đồng API frontend gi�
 - **Typography:** display / headline / title / body / label — scale Material 3, kiểm tra độ dài tiếng Việt (dài hơn tiếng Anh ~ 15–20%).
 
 ### 3.2 Component sheet (thiết kế 1 lần, tái dùng)
-`PantryItemCard` · `DishCard` (+ biến thể `SuggestionCard` có điểm & badge) · `ExpiryBadge` · `TierChip` · `MacroRing` / `MacroChip` / `MacroBar` · `QuotaBanner` (X/40 nguyên liệu, X/10 lượt quét) · `ConfidenceField` (ô OCR sửa được + mức tin cậy) · `WaveformRecorder` · `QuickActionSheet` (4 nút) · `CategoryPicker` · `QtyStepper` · `UnitPicker` · `DateField` · `PrimaryButton` / `SecondaryButton` / `TextButton` · `PaywallCard` · `EmptyState` · `ErrorView` · `LoadingSkeleton` (list / card / detail) · `SectionHeader` · `SavingsPill`.
+`PantryItemCard` · `DishCard` (+ biến thể `SuggestionCard` có điểm & badge) · `ExpiryBadge` · `TierChip` · `MacroRing` / `MacroChip` / `MacroBar` · `QuotaBanner` (X/40 nguyên liệu, X/10 lượt quét) · `ConfidenceField` (ô OCR sửa được + mức tin cậy) · `WaveformRecorder` · `QuickActionSheet` (4 nút) · `CategoryPicker` · `QtyStepper` · `UnitPicker` · `DateField` · `PrimaryButton` / `SecondaryButton` / `TextButton` · `PaywallCard` · `EmptyState` · `ErrorView` · `LoadingSkeleton` (list / card / detail) · `SectionHeader` · `WasteSavedPill` (số nguyên liệu dùng trước hạn — không có tiền).
 
 ### 3.3 Quy ước trạng thái (mọi screen phải có bản thiết kế cho 4 trạng thái)
 `Loading` (skeleton, không spinner toàn màn) · `Empty` (minh hoạ + CTA rõ ràng) · `Error` (thông điệp + nút "Thử lại") · `Loaded`. Bổ sung `Offline` nếu screen phụ thuộc mạng mạnh.
@@ -129,7 +129,7 @@ Premium (gated): Thực đơn tuần · Báo cáo · Mục tiêu dinh dưỡng �
 ### Nhóm 2 — Trang chủ
 | ID | Screen | Thành phần | Trạng thái |
 |---|---|---|---|
-| H-01 | Dashboard | Header lời chào + `SavingsPill`; section **"Cần dùng sớm"** (card ngang, ưu tiên cận hạn); **Gợi ý nhanh** (3–5 `SuggestionCard` thu gọn); **Tổng quan kho** 4 tầng (đếm + mini bar); FAB thêm nguyên liệu | Loaded / **Empty (kho trống → CTA nhập kho)** / Loading skeleton / Error |
+| H-01 | Dashboard | Header lời chào + `WasteSavedPill`; section **"Cần dùng sớm"** (card ngang, ưu tiên cận hạn); **Gợi ý nhanh** (3–5 `SuggestionCard` thu gọn); **Tổng quan kho** 4 tầng (đếm + mini bar); FAB thêm nguyên liệu | Loaded / **Empty (kho trống → CTA nhập kho)** / Loading skeleton / Error |
 
 ### Nhóm 3 — Kho thực phẩm
 | ID | Screen | Thành phần | Trạng thái |
@@ -197,8 +197,8 @@ Premium (gated): Thực đơn tuần · Báo cáo · Mục tiêu dinh dưỡng �
 ### Nhóm 11 — Báo cáo `[P]`
 | ID | Screen | Thành phần | Trạng thái |
 |---|---|---|---|
-| R-01 | Báo cáo tiết kiệm | Thực phẩm dùng trước hạn, tiền tiết kiệm ước tính, lượng rác tránh được; chọn tuần/tháng; biểu đồ | Loaded / Empty / **Locked (Free)** |
-| R-02 | Báo cáo chi tiêu | Tổng chi, theo danh mục, xu hướng | như trên |
+| R-01 | Báo cáo chống lãng phí | Số nguyên liệu dùng trước hạn, lượng rác tránh được (kg), số món đã nấu; theo tuần/tháng; biểu đồ. **Không có số tiền** (thiếu dữ liệu giá) | Loaded / Empty |
+| ~~R-02 Báo cáo chi tiêu~~ | Hoãn — cần dữ liệu giá nguyên liệu (OCR chưa lấy được) | — |
 
 ### Nhóm 12 — Cá nhân / Cài đặt
 | ID | Screen | Thành phần |
@@ -293,7 +293,7 @@ Base `/api/v1`, Bearer JWT. Dùng làm `../../docs/api-contract.md` chung với 
 - **Shopping list:** `POST /shopping-lists/generate {weekStart|mealPlanId}` (dedup vs pantry) · `GET /shopping-lists/{id}` · `PATCH …/items/{itemId} {checked}`
 - **Devices/Notifications:** `POST /devices {fcmToken,platform}` · `DELETE /devices/{token}` · `GET /notifications` · `POST /notifications/{id}/read`
 - **Subscription:** `GET /subscription` (tier + entitlements) · `POST /subscription/checkout` (MVP: mock)
-- **Reports `[P]`:** `GET /reports/savings?period=` · `GET /reports/spending?period=`
+- **Reports:** `GET /reports/waste-reduction?period=` (đếm nguyên liệu dùng trước hạn + kg tránh lãng phí)
 
 ### Domain model rút gọn
 `User` · `SubscriptionTier{free,premiumMonthly,premiumYearly,premiumFamily}` · `Entitlements{maxActiveIngredients(40/∞), scansPerMonth(10/∞), weeklyPlanner, nutritionGoals, reports, pantrySharing, dishHistory, customReminders}`
@@ -307,7 +307,7 @@ Base `/api/v1`, Bearer JWT. Dùng làm `../../docs/api-contract.md` chung với 
 `CookedFood` · `MealPlan/MealPlanEntry{date,mealType,dishId}`
 `ShoppingList/ShoppingListItem{name,qty,unit,category,checked,fromDishIds,estPriceVnd?}`
 `ScanJob{type,status,rawText?,parsedItems:[ParsedItemDraft{name,qty?,unit?,packedDate?,expiryDate?,priceVnd?,confidence,suggestedStorageTier,suggestedCategory}]}`
-`ExpiryAlert` · `SavingsSummary` · `SpendingReport`
+`ExpiryAlert` · `WasteReductionSummary`
 
 ---
 
